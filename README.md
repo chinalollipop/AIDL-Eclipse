@@ -1,9 +1,9 @@
 # AIDL-Eclipse
-remote
+
 在Android中,每个应用程序都有自己的进程，当需要在不同的进程之间传递对象时，该如何实现呢?显然, Java中是不支持跨进程内存共享的。因此要传递对象,需要把对象解析成操作系统能够理解的数据格式,以达到跨界对象访问的目的。在JavaEE中，采用RMI通过序列化传递对象。在Android中,则采用AIDL(Android Interface DefinitionLanguage：接口描述语言)方式实现。
 AIDL是一种接口定义语言，用于约束两个进程间的通讯规则，供编译器生成代码，实现Android设备上的两个进程间通信(IPC)。AIDL的IPC机制和EJB所采用的CORBA很类似，进程之间的通信信息，首先会被转换成AIDL协议消息，然后发送给对方，对方收到AIDL协议消息后再转换成相应的对象。由于进程之间的通信信息需要双向转换，所以android采用代理类在背后实现了信息的双向转换，代理类由android编译器生成，对开发人员来说是透明的。
 实现进程通信，一般需要下面四个步骤：
-假设Client端需要与Server端进行通信，调用Server端中的计算方法，Server端以Service方式向A应用提供服务。需要下面四个步骤:
+假设Client端需要与Server端进行通信，调用Server端中的计算方法，Server端以Service方式向Client端提供服务。需要下面四个步骤:
 1>在Server端中创建*.aidl文件，aidl文件的定义和接口的定义很相类，如：在com.example.aidlserver包下创建IArithmetic.aidl文件，内容如下：
 /**
 定义一个接口，后缀名命名为aidl
@@ -28,7 +28,7 @@ interface IArithmetic {
 	//除法
 	double divide(int value1, int value);
 }
-当完成aidl文件创建后，eclipse会自动在项目的gen目录中同步生成IDownloadService.java接口文件。接口文件中生成一个Stub的抽象类，里面包括aidl定义的方法，还包括一些其它辅助方法。值得关注的是asInterface(IBinderiBinder)，它返回接口类型的实例，对于远程服务调用，远程服务返回给客户端的对象为代理对象，客户端在onServiceConnected(ComponentNamename,IBinderservice)方法引用该对象时不能直接强转成接口类型的实例，而应该使用asInterface(IBinderiBinder)进行类型转换。
+当完成aidl文件创建后，eclipse会自动在项目的gen目录中同步生成IArithmetic.java接口文件。接口文件中生成一个Stub的抽象类，里面包括aidl定义的方法，还包括一些其它辅助方法。值得关注的是asInterface(IBinderiBinder)，它返回接口类型的实例，对于远程服务调用，远程服务返回给客户端的对象为代理对象，客户端在onServiceConnected(ComponentNamename,IBinderservice)方法引用该对象时不能直接强转成接口类型的实例，而应该使用asInterface(IBinderiBinder)进行类型转换。
 编写Aidl文件时，需要注意下面几点:
   1.接口名和aidl文件名相同。
   2.接口和方法前不用加访问权限修饰符public,private,protected等,也不能用final,static。
@@ -36,7 +36,7 @@ interface IArithmetic {
   4.自定义类型和AIDL生成的其它接口类型在aidl描述文件中，应该显式import，即便在该类和定义的包在同一个包中。
   5.在aidl文件中所有非Java基本类型参数必须加上in、out、inout标记，以指明参数是输入参数、输出参数还是输入输出参数。
   6.Java原始类型默认的标记为in,不能为其它标记。
-2>在B应用中实现aidl文件生成的接口（本例是IDownloadService），但并非直接实现接口，而是通过继承接口的Stub来实现（Stub抽象类内部实现了aidl接口），并且实现接口方法的代码。内容如下：
+2>在Server端中实现aidl文件生成的接口（本例是ArithmeticService），但并非直接实现接口，而是通过继承接口的Stub来实现（Stub抽象类内部实现了aidl接口），并且实现接口方法的代码。内容如下：
 public class ServiceBinder extends IArithmetic.Stub {  
         
 
@@ -64,7 +64,7 @@ public class ServiceBinder extends IArithmetic.Stub {
 			return  (value1 / value2);
 		}         
     }  
-3>在服务器中创建一个Service（服务），在服务的onBind(Intentintent)方法中返回实现了aidl接口的对象（本例是ServiceBinder）。内容如下：
+3>在Server端中创建一个Service（服务），在服务的onBind(Intentintent)方法中返回实现了aidl接口的对象（本例是ServiceBinder）。内容如下：
 /**
  * 此类最主要的就是继承Service，然后通过 Binder去实现AIDL的IArithmetic.Stub的几个方法
  * 具体的实现包括一些具体的逻辑，如加、减、乘、除算法等等
@@ -117,7 +117,7 @@ public class ArithmeticService extends Service {
     }  
 
 }
-
+编写完成之后，开始编写项目清单文件【注册服务】
 其他应用可以通过隐式意图访问服务,意图的动作可以自定义，AndroidManifest.xml配置代码如下：
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -154,7 +154,7 @@ public class ArithmeticService extends Service {
     </application>
 
 </manifest>
-4>把B应用中aidl文件所在package连同aidl文件一起拷贝到客户端A应用，eclipse会自动在A应用的gen目录中为aidl文件同步生成IArithmetic.java接口文件,接下来就可以在A应用中实现与B应用通信，代码如下：
+4>把Server端中aidl文件所在package连同aidl文件一起拷贝到Client客户端中，eclipse会自动在Client端中的gen目录中为aidl文件同步生成IArithmetic.java接口文件,接下来就可以在Client端和Server端之间的通信，代码如下：
 package com.example.aidlclient;
 
 import com.example.aidlserver.IArithmetic;
