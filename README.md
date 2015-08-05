@@ -37,6 +37,7 @@ interface IArithmetic {
   5.在aidl文件中所有非Java基本类型参数必须加上in、out、inout标记，以指明参数是输入参数、输出参数还是输入输出参数。
   6.Java原始类型默认的标记为in,不能为其它标记。
 2>在Server端中实现aidl文件生成的接口（本例是ArithmeticService），但并非直接实现接口，而是通过继承接口的Stub来实现（Stub抽象类内部实现了aidl接口），并且实现接口方法的代码。内容如下：
+
 public class ServiceBinder extends IArithmetic.Stub {  
         
 
@@ -119,6 +120,7 @@ public class ArithmeticService extends Service {
 }
 编写完成之后，开始编写项目清单文件【注册服务】
 其他应用可以通过隐式意图访问服务,意图的动作可以自定义，AndroidManifest.xml配置代码如下：
+
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.aidlserver"
@@ -155,6 +157,7 @@ public class ArithmeticService extends Service {
 
 </manifest>
 4>把Server端中aidl文件所在package连同aidl文件一起拷贝到Client客户端中，eclipse会自动在Client端中的gen目录中为aidl文件同步生成IArithmetic.java接口文件,接下来就可以在Client端和Server端之间的通信，代码如下：
+
 package com.example.aidlclient;
 
 import com.example.aidlserver.IArithmetic;
